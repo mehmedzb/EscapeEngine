@@ -2,63 +2,62 @@
 #include <windows.h>
 #include <glad/glad.h>
 #include <gl/GL.h>
-// #include <wglext.h>
 
 typedef HGLRC(WINAPI* PFNWGLCREATECONTEXTATTRIBSARBPROC)(HDC, HGLRC, const int*);
 
-LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK WndProc(HWND WindowHandle, UINT Message, WPARAM WParam, LPARAM LParam)
 {
-    if (msg == WM_DESTROY)
+    if (Message == WM_DESTROY)
     {
         PostQuitMessage(0);
         return 0;
     }
-    return DefWindowProc(hwnd, msg, wParam, lParam);
+    return DefWindowProc(WindowHandle, Message, WParam, LParam);
 }
 
 int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
 {
-    // 1) Window Class
-    WNDCLASS wc = {};
-    wc.style = CS_OWNDC;
-    wc.lpfnWndProc = WndProc;
-    wc.hInstance = hInst;
-    wc.lpszClassName = "GLWindowClass";
-    RegisterClass(&wc);
 
-    // 2) Create Window
-    HWND hwnd = CreateWindowEx(
-        0, "GLWindowClass", "OpenGL + GLAD Window",
+    /// windows window setup
+
+    WNDCLASS WindowClass = {};
+    WindowClass.style = CS_OWNDC;
+    WindowClass.lpfnWndProc = WndProc;
+    WindowClass.hInstance = hInst;
+    WindowClass.lpszClassName = "EscapeEngineWindowClass";
+    RegisterClass(&WindowClass);
+
+    HWND WindowHandle = CreateWindowEx(
+        0, "EscapeEngineWindowClass", "Escape Engine",
         WS_OVERLAPPEDWINDOW | WS_VISIBLE,
         CW_USEDEFAULT, CW_USEDEFAULT,
         800, 600,
         nullptr, nullptr, hInst, nullptr
     );
 
-    HDC hdc = GetDC(hwnd);
+    HDC DeviceContext = GetDC(WindowHandle);
 
     // 3) Pixel Format
-    PIXELFORMATDESCRIPTOR pfd = {};
-    pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
-    pfd.nVersion = 1;
-    pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
-    pfd.iPixelType = PFD_TYPE_RGBA;
-    pfd.cColorBits = 32;
-    pfd.cDepthBits = 24;
-    pfd.cStencilBits = 8;
-    pfd.iLayerType = PFD_MAIN_PLANE;
+    PIXELFORMATDESCRIPTOR PixelFormatDesc = {};
+    PixelFormatDesc.nSize = sizeof(PIXELFORMATDESCRIPTOR);
+    PixelFormatDesc.nVersion = 1;
+    PixelFormatDesc.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+    PixelFormatDesc.iPixelType = PFD_TYPE_RGBA;
+    PixelFormatDesc.cColorBits = 32;
+    PixelFormatDesc.cDepthBits = 24;
+    PixelFormatDesc.cStencilBits = 8;
+    PixelFormatDesc.iLayerType = PFD_MAIN_PLANE;
 
-    int pixelFormat = ChoosePixelFormat(hdc, &pfd);
-    SetPixelFormat(hdc, pixelFormat, &pfd);
+    int pixelFormat = ChoosePixelFormat(DeviceContext, &PixelFormatDesc);
+    SetPixelFormat(DeviceContext, pixelFormat, &PixelFormatDesc);
 
-    // 4) Temporary OpenGL Context (for loading WGL extensions)
-    HGLRC tempRC = wglCreateContext(hdc);
-    wglMakeCurrent(hdc, tempRC);
+    HGLRC TempRC = wglCreateContext(DeviceContext);
+    wglMakeCurrent(DeviceContext, TempRC);
 
     // 5) Load GLAD (this loads WGL extensions too)
     if (!gladLoadGL())
     {
-        MessageBoxA(hwnd, "Failed to load GLAD", "Error", MB_OK);
+        MessageBoxA(WindowHandle, "Failed to load GLAD", "Error", MB_OK);
         return -1;
     }
 
@@ -72,14 +71,15 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
 
     PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB = (PFNWGLCREATECONTEXTATTRIBSARBPROC) wglGetProcAddress("wglCreateContextAttribsARB");
 
-    HGLRC glrc = wglCreateContextAttribsARB(hdc, 0, attribs);
+    HGLRC GLContext = wglCreateContextAttribsARB(DeviceContext, 0, attribs);
 
     // Switch to modern context
     wglMakeCurrent(nullptr, nullptr);
-    wglDeleteContext(tempRC);
-    wglMakeCurrent(hdc, glrc);
+    wglDeleteContext(TempRC);
+    wglMakeCurrent(DeviceContext, GLContext);
 
-// yeni kod
+    /// windows window setup ending.
+
 
 const char* vs = R"(
 #version 450 core
@@ -97,7 +97,6 @@ void main() {
 }
 )";
 
-// Shader compile
 GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
 glShaderSource(vertexShader, 1, &vs, NULL);
 glCompileShader(vertexShader);
@@ -134,18 +133,17 @@ glEnableVertexAttribArray(0);
 glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
 
-// yeni kod ending
 
     // 7) Render Loop
-    MSG msg = {};
+    MSG Message = {};
     while (true)
     {
-        while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
+        while (PeekMessage(&Message, nullptr, 0, 0, PM_REMOVE))
         {
-            if (msg.message == WM_QUIT)
+            if (Message.message == WM_QUIT)
                 return 0;
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
+            TranslateMessage(&Message);
+            DispatchMessage(&Message);
         }
 
         glClearColor(0,0,0,1);
@@ -155,16 +153,7 @@ glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
-        SwapBuffers(hdc);
-
-/*
-
-
-        // Clear screen red
-        glClearColor(1.f, 0.f, 0.f, 1.f);
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        SwapBuffers(hdc);*/
+        SwapBuffers(DeviceContext);
     }
 
     return 0;
