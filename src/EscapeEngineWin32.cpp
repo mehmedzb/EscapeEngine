@@ -17,7 +17,6 @@ LRESULT CALLBACK WndProc(HWND WindowHandle, UINT Message, WPARAM WParam, LPARAM 
 
 int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
 {
-
     /// windows window setup
 
     WNDCLASS WindowClass = {};
@@ -37,7 +36,6 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
 
     HDC DeviceContext = GetDC(WindowHandle);
 
-    // 3) Pixel Format
     PIXELFORMATDESCRIPTOR PixelFormatDesc = {};
     PixelFormatDesc.nSize = sizeof(PIXELFORMATDESCRIPTOR);
     PixelFormatDesc.nVersion = 1;
@@ -54,14 +52,13 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
     HGLRC TempRC = wglCreateContext(DeviceContext);
     wglMakeCurrent(DeviceContext, TempRC);
 
-    // 5) Load GLAD (this loads WGL extensions too)
     if (!gladLoadGL())
     {
         MessageBoxA(WindowHandle, "Failed to load GLAD", "Error", MB_OK);
         return -1;
     }
 
-    // 6) Create Modern OpenGL 4.5 Context
+    // Modern OpenGL 4.5 Context
     int attribs[] = {
         0x2091, 4, // WGL_CONTEXT_MAJOR_VERSION_ARB
         0x2092, 5, // WGL_CONTEXT_MINOR_VERSION_ARB
@@ -134,7 +131,7 @@ glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
 
 
-    // 7) Render Loop
+    // Render Loop
     MSG Message = {};
     while (true)
     {
